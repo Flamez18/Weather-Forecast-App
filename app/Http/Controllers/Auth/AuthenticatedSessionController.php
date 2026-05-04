@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,17 +14,11 @@ use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
     public function create(): View
     {
         return view('auth.login');
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
@@ -43,23 +38,28 @@ class AuthenticatedSessionController extends Controller
         }
 
         Auth::login($user, $request->boolean('remember'));
-
         $request->session()->regenerate();
+
+        // Cek maintenance mode setelah login
+        // Kalau aktif dan bukan admin → logout dan tampilkan error
+        if (Setting::get('maintenance_mode') === '1' && $user->role !== 'admin') {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'username' => 'Sistem sedang dalam maintenance. Hanya admin yang dapat login.',
+            ]);
+        }
 
         return redirect()->intended(route('weather.index'));
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
-
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
-
-        return redirect('/login');
+        return redirect()->route('login');
     }
 }
