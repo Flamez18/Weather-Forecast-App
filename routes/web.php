@@ -45,7 +45,12 @@ Route::middleware([\App\Http\Middleware\MaintenanceMiddleware::class])->group(fu
         Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
         Route::post('/admin/settings', [SettingController::class, 'update'])->name('admin.settings.update');
         Route::get('/admin/api-check', [SettingController::class, 'checkApi'])->name('admin.api.check');
+
+    // User management
+        Route::patch('/admin/users/{user}/toggle-role', [UserController::class, 'toggleRole'])->name('admin.users.toggle-role');
+        Route::delete('/admin/users/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
     });
+
 
 });
 

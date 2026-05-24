@@ -9,40 +9,47 @@ use Illuminate\Support\Facades\Auth;
 class FavoriteController extends Controller
 {
     public function store(Request $request)
-{
-    // 1. Validasi input
-    $request->validate([
-        'city_name' => 'required|string',
-        'country'   => 'required|string',
-    ]);
+    {
+        $request->validate([
+            'city_name' => 'required|string',
+            'country'   => 'required|string',
+        ]);
 
-    // 2. Cek apakah user sudah memfavoritkan kota ini [Nomor 2]
-    $isAlreadyFavorite = Favorite::where('user_id', Auth::id())
-                                ->where('city_name', $request->city_name)
-                                ->exists();
+        // Anti-duplikasi
+        $exists = Favorite::where('user_id', Auth::id())
+                          ->where('city_name', $request->city_name)
+                          ->exists();
 
-    if ($isAlreadyFavorite) {
-        return back()->with('error', 'Kota ' . $request->city_name . ' sudah ada di daftar favoritmu!');
-    }
+        if ($exists) {
+            return back()->with('success', $request->city_name . ' sudah ada di daftar favorit kamu!');
+        }
 
-    // 3. Simpan jika belum ada
-    Favorite::create([
-        'user_id'   => Auth::id(),
-        'city_name' => $request->city_name,
-        'country'   => $request->country,
-        'latitude'  => $request->latitude,
-        'longitude' => $request->longitude,
-    ]);
+        Favorite::create([
+            'user_id'   => Auth::id(),
+            'city_name' => $request->city_name,
+            'country'   => $request->country,
+            'latitude'  => $request->latitude,
+            'longitude' => $request->longitude,
+        ]);
 
-    return back()->with('success', 'Lokasi berhasil ditambahkan ke favorit!');
+        return back()->with('success', $request->city_name . ' berhasil ditambahkan ke favorit!');
     }
 
     public function destroy($id)
     {
-        // Pastikan hanya pemilik yang bisa menghapus
-        $favorite = Favorite::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+        // Admin bisa hapus favorit siapapun
+        // User biasa hanya bisa hapus miliknya sendiri
+        if (Auth::user()->isAdmin()) {
+            $favorite = Favorite::findOrFail($id);
+        } else {
+            $favorite = Favorite::where('id', $id)
+                                ->where('user_id', Auth::id())
+                                ->firstOrFail();
+        }
+
+        $cityName = $favorite->city_name;
         $favorite->delete();
 
-        return back()->with('success', 'Lokasi berhasil dihapus.');
+        return back()->with('success', $cityName . ' berhasil dihapus dari favorit.');
     }
 }

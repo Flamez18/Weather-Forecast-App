@@ -236,13 +236,30 @@
 
         {{-- USERS --}}
         <div class="section" id="section-users">
+
+            @if(session('settings_saved'))
+                <div class="alert-saved animate-in" style="margin-bottom:20px;">
+                    <i class="fas fa-check-circle"></i> {{ session('settings_saved') }}
+                </div>
+            @endif
+
             <div class="table-card animate-in">
                 <div class="table-header">
                     <h3><i class="fas fa-users" style="margin-right:8px;color:#667eea;"></i> All Users</h3>
                     <span style="font-size:13px;opacity:0.5;">{{ $totalUsers }} total users</span>
                 </div>
                 <table>
-                    <thead><tr><th>ID</th><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         @forelse($allUsers as $user)
                         <tr>
@@ -256,9 +273,40 @@
                                 </span>
                             </td>
                             <td style="opacity:0.6;font-size:13px;">{{ $user->created_at->format('d M Y') }}</td>
+                            <td>
+                                @if($user->id !== Auth::id())
+                                    <div style="display:flex;gap:8px;">
+                                        {{-- Toggle Role --}}
+                                        <form method="POST" action="{{ route('admin.users.toggle-role', $user) }}">
+                                            @csrf @method('PATCH')
+                                            <button type="submit" class="btn btn-primary btn-sm"
+                                                title="{{ $user->role === 'admin' ? 'Jadikan User' : 'Jadikan Admin' }}"
+                                                onclick="return confirm('Ubah role {{ $user->name }} menjadi {{ $user->role === 'admin' ? 'User' : 'Admin' }}?')">
+                                                @if($user->role === 'admin')
+                                                    <i class="fas fa-user-minus"></i> User
+                                                @else
+                                                    <i class="fas fa-user-shield"></i> Admin
+                                                @endif
+                                            </button>
+                                        </form>
+
+                                        {{-- Delete User --}}
+                                        <form method="POST" action="{{ route('admin.users.destroy', $user) }}">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-danger btn-sm"
+                                                title="Hapus User"
+                                                onclick="return confirm('Hapus user {{ $user->name }}? Semua favorit mereka juga akan terhapus.')">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <span style="font-size:12px;opacity:0.35;font-style:italic;">Akun kamu</span>
+                                @endif
+                            </td>
                         </tr>
                         @empty
-                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-user-slash"></i> Belum ada user</div></td></tr>
+                        <tr><td colspan="7"><div class="empty-state"><i class="fas fa-user-slash"></i> Belum ada user</div></td></tr>
                         @endforelse
                     </tbody>
                 </table>
